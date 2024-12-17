@@ -34,12 +34,12 @@ contract Envoy is Singleton, StorageAccessible {
      * @param hermes  The address of the Hermes contract
      * @param delegateRegistry  The address of the Snapshot DelegateRegistry contract
      * @param st1inch  The address of the 1inch staking contract
-     * @param id  The id of the delegation
+     * @param id  The id of the Snapshot space
      * @param delegatee  The address of the delegatee
      * @param amount  The amount of tokens to be staked
      * @param duration  The duration for which the tokens are to be staked
      */
-    function initialize(
+    function initializeEnvoy(
         address token,
         address hermes,
         address delegateRegistry,
@@ -49,7 +49,10 @@ contract Envoy is Singleton, StorageAccessible {
         uint256 amount,
         uint256 duration
     ) public {
+        require(hermes != address(0), "Invalid Hermes address");
         require(_hermes == address(0), "Already initialized");
+        require(isContract(hermes), "Invalid Hermes address");
+
         _hermes = hermes;
         _st1inch = st1inch;
         _delegatee = delegatee;
@@ -97,5 +100,20 @@ contract Envoy is Singleton, StorageAccessible {
         ISt1inch(_st1inch).earlyWithdraw(minReturn, maxLoss);
 
         _token.transfer(to, _token.balanceOf(address(this)));
+    }
+
+    /**
+     * @notice Checks if the given address is a contract
+     * @param hermes The address of the Hermes contract
+     */
+    function isContract(address hermes) internal view returns (bool) {
+        uint256 size;
+        /* solhint-disable no-inline-assembly */
+        /// @solidity memory-safe-assembly
+        assembly {
+            size := extcodesize(hermes)
+        }
+        /* solhint-enable no-inline-assembly */
+        return size > 0;
     }
 }
