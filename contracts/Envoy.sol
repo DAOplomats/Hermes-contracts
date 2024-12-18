@@ -6,12 +6,24 @@ import "./common/StorageAccessible.sol";
 import "./interfaces/ISt1inch.sol";
 import "./interfaces/IDelegateRegistry.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./libraries/ContractChecker.sol";
 
 /**
  * @title Envoy - A contract that can be used to sub-delegate voting power to another address.
  * @author Anoy Roy Chowdhury - <anoy@daoplomats.org>
  */
 contract Envoy is Singleton, StorageAccessible {
+    using SafeERC20 for IERC20;
+
+    event EnvoyInitialized(
+        address indexed token,
+        address indexed hermes,
+        address indexed delegatee,
+        uint256 amount,
+        uint256 duration
+    );
+
     IERC20 private _token;
     address private _hermes;
     address private _st1inch;
@@ -51,7 +63,7 @@ contract Envoy is Singleton, StorageAccessible {
     ) public {
         require(hermes != address(0), "Invalid Hermes address");
         require(_hermes == address(0), "Already initialized");
-        require(isContract(hermes), "Invalid Hermes address");
+        require(ContractChecker.isContract(hermes), "Invalid Hermes address");
 
         _hermes = hermes;
         _st1inch = st1inch;
@@ -60,6 +72,8 @@ contract Envoy is Singleton, StorageAccessible {
 
         ISt1inch(_st1inch).deposit(amount, duration);
         IDelegateRegistry(delegateRegistry).setDelegate(id, delegatee);
+
+        emit EnvoyInitialized(token, hermes, delegatee, amount, duration);
     }
 
     /**
@@ -83,7 +97,7 @@ contract Envoy is Singleton, StorageAccessible {
     function recall(address to) external onlyHermes {
         ISt1inch(_st1inch).withdraw();
 
-        _token.transfer(to, _token.balanceOf(address(this)));
+        _token.safeTransfer(to, _token.balanceOf(address(this)));
     }
 
     /**
@@ -99,21 +113,6 @@ contract Envoy is Singleton, StorageAccessible {
     ) external onlyHermes {
         ISt1inch(_st1inch).earlyWithdraw(minReturn, maxLoss);
 
-        _token.transfer(to, _token.balanceOf(address(this)));
-    }
-
-    /**
-     * @notice Checks if the given address is a contract
-     * @param hermes The address of the Hermes contract
-     */
-    function isContract(address hermes) internal view returns (bool) {
-        uint256 size;
-        /* solhint-disable no-inline-assembly */
-        /// @solidity memory-safe-assembly
-        assembly {
-            size := extcodesize(hermes)
-        }
-        /* solhint-enable no-inline-assembly */
-        return size > 0;
+        _token.safeTransfer(to, _token.balanceOf(address(this)));
     }
 }
