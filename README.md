@@ -1,10 +1,10 @@
-<center><img src="daoplomats.png" alt="logo"  width="100"/> </center>
+<p align="center">
+ <img src="daoplomats.png" alt="logo"  width="100"/>
+</p>
 
-<center> <h1>HERMES</h1>
+<h1 align="center">HERMES</h1>
 
 > Hermes smart contracts manage token delegation and staking, particularly designed for 1inch token staking with support for sub-delegation of voting power.
-
-</center>
 
 ## Overview
 
@@ -16,8 +16,6 @@ The Hermes smart contracts consists of three main contracts that work together t
 
 ## Architecture
 
-<center>
-
 ```
 HermesProxyFactory
 ↓
@@ -25,8 +23,6 @@ Hermes
 ↓
 Envoy(s)
 ```
-
-</center>
 
 - `HermesProxyFactory` deploys and funds new Hermes contracts
 - Each `Hermes` contract can manage multiple `Envoy` contracts
