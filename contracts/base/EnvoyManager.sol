@@ -13,9 +13,11 @@ abstract contract EnvoyManager {
     uint256 public envoyCount;
 
     /**
-     * @notice Initializes the linked list with the sentinel value.
+     * @notice Initializes the EnvoyManager contract.
      */
-    constructor() {
+    function setupEnvoyManager() internal {
+        require(envoys[SENTINEL_ENVOY] == address(0), "Already initialized");
+
         envoys[SENTINEL_ENVOY] = SENTINEL_ENVOY;
     }
 
@@ -25,7 +27,7 @@ abstract contract EnvoyManager {
      */
     function addEnvoy(address envoy) internal {
         require(
-            envoy != address(0) || envoy != SENTINEL_ENVOY,
+            envoy != address(0) && envoy != SENTINEL_ENVOY,
             "Invalid Envoy"
         );
         require(envoys[envoy] == address(0), "Member already exists");
@@ -66,7 +68,7 @@ abstract contract EnvoyManager {
             next != SENTINEL_ENVOY &&
             _envoyCount < pageSize
         ) {
-            array[envoyCount] = next;
+            array[_envoyCount] = next;
             next = envoys[next];
             _envoyCount++;
         }

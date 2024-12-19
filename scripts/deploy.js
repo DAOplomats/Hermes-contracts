@@ -11,9 +11,18 @@ async function main() {
 
   console.log("Deploying contracts with the account:", deployer.address);
 
-  const contract = await hre.ethers.deployContract("", [], {
-    gasLimit: 2000000,
-  });
+  const contract = await hre.ethers.deployContract(
+    "HermesProxyFactory",
+    [
+      "0xd44390C5f4e3558Be11BbDEb9c3193b6f4DFf8c4",
+      "0xd44390C5f4e3558Be11BbDEb9c3193b6f4DFf8c4",
+      "0xd44390C5f4e3558Be11BbDEb9c3193b6f4DFf8c4",
+      "0x0000000000000000000000000000000000000000000000000000000000000001",
+    ],
+    {
+      gasLimit: 10000000,
+    }
+  );
 
   console.log("Contract address:", await contract.getAddress());
 }

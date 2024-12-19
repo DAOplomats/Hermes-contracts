@@ -20,6 +20,7 @@ contract HermesProxyFactory {
     event HermesCreated(address indexed hermes, address indexed admin);
 
     address private HERMES_SINGLETON;
+    address private ENVOY_SINGLETON;
     IERC20 private _token;
     address private _st1inch;
     address private _delegateRegistry;
@@ -45,6 +46,7 @@ contract HermesProxyFactory {
         _id = id;
 
         HERMES_SINGLETON = address(new Hermes());
+        ENVOY_SINGLETON = address(new Envoy());
     }
 
     /**
@@ -179,7 +181,7 @@ contract HermesProxyFactory {
         address hermes = getHermes(msg.sender, leadDelegatee, salt);
 
         require(
-            envoy == address(0) || envoy == hermes,
+            envoy != address(0) && ContractChecker.isContract(envoy),
             "Invalid envoy address"
         );
 
@@ -198,11 +200,6 @@ contract HermesProxyFactory {
         address to
     ) external {
         address hermes = getHermes(msg.sender, leadDelegatee, salt);
-
-        require(
-            Hermes(hermes).isEnvoy(msg.sender),
-            "Only envoys can call this function"
-        );
 
         Hermes(hermes).recallAll(to);
     }
@@ -227,7 +224,7 @@ contract HermesProxyFactory {
         address hermes = getHermes(msg.sender, leadDelegatee, salt);
 
         require(
-            envoy == address(0) || envoy == hermes,
+            envoy != address(0) && ContractChecker.isContract(envoy),
             "Invalid envoy address"
         );
 
@@ -283,7 +280,7 @@ contract HermesProxyFactory {
         bytes32 id,
         uint256 maxSubDelegators,
         uint256 maxDuration
-    ) private pure returns (bytes memory) {
+    ) private view returns (bytes memory) {
         return
             abi.encodeWithSelector(
                 Hermes.initializeHermes.selector,
@@ -293,7 +290,8 @@ contract HermesProxyFactory {
                 delegateRegistry,
                 id,
                 maxSubDelegators,
-                maxDuration
+                maxDuration,
+                ENVOY_SINGLETON
             );
     }
 }

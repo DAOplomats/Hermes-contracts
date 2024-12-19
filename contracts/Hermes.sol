@@ -38,8 +38,6 @@ contract Hermes is Singleton, StorageAccessible, EnvoyManager {
     // This constructor ensures that this contract can only be used as a singleton for Proxy contracts
     constructor() {
         _leadDelegatee = address(0x1);
-
-        ENVOY_SINGLETON = address(new Envoy());
     }
 
     // This modifier ensures that only the Lead Delegatee can call the function
@@ -66,6 +64,7 @@ contract Hermes is Singleton, StorageAccessible, EnvoyManager {
      * @param id  The id of the Snapshot space
      * @param maxSubDelegators  The maximum number of sub-delegators
      * @param maxDuration  The maximum duration for which the tokens are to be staked
+     *
      */
     function initializeHermes(
         address token,
@@ -74,7 +73,8 @@ contract Hermes is Singleton, StorageAccessible, EnvoyManager {
         address delegateRegistry,
         bytes32 id,
         uint256 maxSubDelegators,
-        uint256 maxDuration
+        uint256 maxDuration,
+        address envoySingleton
     ) public {
         require(_leadDelegatee == address(0), "Already initialized");
         require(
@@ -98,6 +98,9 @@ contract Hermes is Singleton, StorageAccessible, EnvoyManager {
         _delegateRegistry = delegateRegistry;
         MAX_SUB_DELEGATORS = maxSubDelegators;
         MAX_DURATION = maxDuration;
+        ENVOY_SINGLETON = envoySingleton;
+
+        setupEnvoyManager();
 
         emit HermesInitialized(leadDelegatee);
     }
@@ -200,11 +203,12 @@ contract Hermes is Singleton, StorageAccessible, EnvoyManager {
         require(!isEnvoy(delegatee), "Delegatee is already an Envoy");
         require(duration <= MAX_DURATION, "Invalid duration");
 
-        _token.safeTransferFrom(msg.sender, address(this), amount);
+        address envoy = getEnvoy(delegatee);
+        _token.safeTransfer(address(envoy), amount);
 
         bytes32 salt = keccak256(abi.encodePacked(_leadDelegatee, delegatee));
 
-        Proxy envoy = _deployEnvoy(
+        _deployEnvoy(
             address(_token),
             address(this),
             _delegateRegistry,
@@ -216,7 +220,7 @@ contract Hermes is Singleton, StorageAccessible, EnvoyManager {
             salt
         );
 
-        addEnvoy(address(envoy));
+        addEnvoy(envoy);
 
         emit SubDelegate(delegatee, amount, duration);
     }
@@ -296,6 +300,30 @@ contract Hermes is Singleton, StorageAccessible, EnvoyManager {
         Envoy(envoy).earlyRecall(to, minReturn, maxLoss);
 
         _token.safeTransfer(to, _token.balanceOf(address(this)));
+    }
+
+    /**
+     * @notice Gets the envoy address
+     * @param delegatee  The address of the delegatee
+     */
+    function getEnvoy(address delegatee) public view returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(_leadDelegatee, delegatee));
+
+        bytes memory deploymentData = abi.encodePacked(
+            type(Proxy).creationCode,
+            uint256(uint160(ENVOY_SINGLETON))
+        );
+
+        bytes32 envoyAddress = keccak256(
+            abi.encodePacked(
+                bytes1(0xff),
+                address(this),
+                salt,
+                keccak256(deploymentData)
+            )
+        );
+
+        return address(uint160(uint256(envoyAddress)));
     }
 
     /**
